@@ -1,3 +1,6 @@
 *~
 *.log
 *.exe
+bin*
+.classpath
+.project
