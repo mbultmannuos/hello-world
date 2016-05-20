@@ -96,16 +96,30 @@ public class SchoenbergerInstanceConverter {
   }
 
   /**
-   * main dient als Einstieg in das Progrämmchen.
+   * Gibt den nth Tag an, der nach dem Starttag 1 date kommt
    *
-   * @param args command line arguments
+   * @param date 1. Tag ab dem berechnet werden soll
+   * @param nth Tag der berechnet werden soll
+   * @return nter Tag
    */
-  public static void main(String[] args) {
-    SchoenbergerInstance instance = new SchoenbergerInstance("INSTANCES/s1_i1_a10_b0.ttga");
-    Date startDate = new Date(2016 - 1900, 06, 04);
-    //Long Differenz zum Aufaddieren von 100 Tagen
-    long hundretDiff = 8553600000L;
-    Date endDate = new Date(startDate.getTime() + hundretDiff);
+  private static Date getNthNext(Date date, int nth) {
+    long milliDiff;
+    milliDiff = 1000L * 60L * 60L * 24L * (long) (nth - 1);
+    Date diffDate = new Date(date.getTime() + milliDiff);
+    return diffDate;
+  }
+
+  /**
+   * Methode generiert für die gegebene Schoenberger Instanz eine dem entsprechende JSON-Datei
+   * mit den jeweiligen Verfügbarkeiten bzw Unverfügbarkeiten.
+   * @param fileName Input Schoeneberger Instanz
+   * @param jsonFileName Output JSON-File
+   * @param startDate Datum, an dem die Liga startet
+   */
+  public static void schoenbergerToJson(String fileName, String jsonFileName, Date startDate) {
+    SchoenbergerInstance instance;
+    instance = new SchoenbergerInstance(fileName);
+    Date endDate = getNthNext(startDate, 100);
 
     //build options
     JsonObjectBuilder optionsBuilder = Json.createObjectBuilder();
@@ -115,26 +129,66 @@ public class SchoenbergerInstanceConverter {
     JsonObjectBuilder builder = Json.createObjectBuilder();
     builder.add("options", optionsBuilder);
 
-    //build teams
-    /*JsonArrayBuilder arrb = Json.createArrayBuilder(); 
+    //build team_options
+    JsonObjectBuilder teamOptionsBuilder = Json.createObjectBuilder();
+    JsonObjectBuilder teamBuilder = Json.createObjectBuilder();
+    for (int i = 0; i < instance.teamzahl; i++) {
+      teamBuilder.add("strength", 2);
+      teamBuilder.add("max_per_week", 3);
+      teamBuilder.add("min_distance", instance.abstaende[i]);
+      teamBuilder.add("club_id", instance.teamIDs[i]);
+      teamOptionsBuilder.add(Integer.toString(instance.teamIDs[i]), teamBuilder);
+    }
+    builder.add("team_options", teamOptionsBuilder);
 
-        JsonObjectBuilder job = Json.createObjectBuilder(); 
-        job.add("stil", "rock"); 
-        job.add("band", "U2"); 
-        arrb.add(job); 
+    //build home constraints
+    JsonObjectBuilder homeConstraintBuilder = Json.createObjectBuilder();
+    JsonObjectBuilder constraintBuilder = Json.createObjectBuilder();
+    int nextConsId = 1;
+    for (int i = 0; i < instance.teamzahl; i++) {
+      for (Integer tmpHomeAvail : instance.homeAvail[i]) {
+        if (tmpHomeAvail < 101) {
+          homeConstraintBuilder.add("type", "home");
+          homeConstraintBuilder.add("valid_at", dateToFormat(getNthNext(startDate, tmpHomeAvail)));
+          homeConstraintBuilder.add("capacity", "");
+          homeConstraintBuilder.add("team_id", instance.teamIDs[i]);
+          homeConstraintBuilder.add("club_id", "");
+          homeConstraintBuilder.add("home_team_id", "");
+          homeConstraintBuilder.add("away_team_id", "");
+          homeConstraintBuilder.add("sports_facility_id", "");
+          constraintBuilder.add(Integer.toString(nextConsId), homeConstraintBuilder);
+          nextConsId++;
+        }
+      }
+    }
 
-        job = Json.createObjectBuilder(); 
-        job.add("stil", "metal"); 
-        job.add("band", "Black Sabbath"); 
-        arrb.add(job); 
+    //build home constraints
+    JsonObjectBuilder awayConstraintBuilder = Json.createObjectBuilder();
+    for (int i = 0; i < instance.teamzahl; i++) {
+      for (Integer tmpAwaySuspend : instance.awaySuspend[i]) {
+        if (tmpAwaySuspend < 101) {
+          awayConstraintBuilder.add("type", "away");
+          awayConstraintBuilder.add("valid_at",dateToFormat(getNthNext(startDate, tmpAwaySuspend)));
+          awayConstraintBuilder.add("capacity", "");
+          awayConstraintBuilder.add("team_id", instance.teamIDs[i]);
+          awayConstraintBuilder.add("club_id", "");
+          awayConstraintBuilder.add("home_team_id", "");
+          awayConstraintBuilder.add("away_team_id", "");
+          awayConstraintBuilder.add("sports_facility_id", "");
+          constraintBuilder.add(Integer.toString(nextConsId), awayConstraintBuilder);
+          nextConsId++;
+        }
+      }
+    }
+    builder.add("contraints", constraintBuilder);
 
-        builder.add("musik", arrb); 
-        builder.add("hungrig", true);*/
+    //build document
     JsonObject jo = builder.build();
 
+    //write document
     try {
-      try (FileWriter fw = new FileWriter("test.json");
-           JsonWriter jsonWriter = Json.createWriter(fw)) {
+      try (FileWriter fw = new FileWriter(jsonFileName);
+              JsonWriter jsonWriter = Json.createWriter(fw)) {
         jsonWriter.writeObject(jo);
       }
     } catch (IOException ioE) {
@@ -142,4 +196,38 @@ public class SchoenbergerInstanceConverter {
     }
   }
 
+  /**
+   * Methode generiert für alle Instanzen des Ordners die entsrechenden JSON-Files.
+   * Das erste Kommandozeilenargument muss einen Verweis zu dem Ordner enthalten, 
+   * in dem die Files liegen.
+   *
+   * @param args command line arguments
+   */
+  public static void main(String[] args) {
+    String dirName = args[0];
+    String outDirName = "";
+    File dir = new File(dirName);
+    if (!dir.isDirectory()) {
+      System.err.println("Angegebener String ist nicht Name eines Verzeichnises");
+    } else {
+      outDirName = dirName + "_JSON";
+      File outDir = new File(outDirName);
+      if (!outDir.isDirectory()) {
+        if (!outDir.mkdir()) {
+          System.err.println("Neues Verzeichnis kann nicht angelegt werden");
+          System.exit(0);
+        }
+      }
+    }
+    File[] fileList;
+    fileList = dir.listFiles();
+    for (File curFile : fileList) {
+      String fileName = curFile.getName();
+      String outFileName = fileName.replace("ttga", "json");
+      if (fileName.matches(".*ttga")) {
+        Date startDate = new Date(2016 - 1900, 06, 11);
+        schoenbergerToJson(dirName + "/" + fileName, outDirName + "/" + outFileName, startDate);
+      }
+    }
+  }
 }
