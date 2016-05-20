@@ -74,7 +74,7 @@ public class SchoenbergerInstanceConverter {
   }
 
   /**
-   * Methode bringt ein Datum vom Typ Date in das BrummBumm YYYY-MM-DD.
+   * Methode bringt ein Datum vom Typ Date in das Programm YYYY-MM-DD.
    *
    * @param date Datum, das formatiert werden soll.
    * @return YYYY-MM-DD formatiertes Datum als String.
