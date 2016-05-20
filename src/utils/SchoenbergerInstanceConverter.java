@@ -96,7 +96,7 @@ public class SchoenbergerInstanceConverter {
   }
 
   /**
-   * main dient als Einstieg in das Programm.
+   * main dient als Einstieg in das Progrämmchen.
    *
    * @param args command line arguments
    */
