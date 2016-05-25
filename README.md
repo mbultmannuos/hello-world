@@ -10,4 +10,8 @@ Hier passt mir das noch nicht ganz!!!
 
 CONSOLE BUMBLE
 
+*List 1
+*List 2
+  *List 2.1
+      *List2.1.1
 
