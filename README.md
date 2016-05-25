@@ -21,3 +21,8 @@ CONSOLE BUMBLE
         $.facebox({div:'#foo'})
       }
     }
+
+
+Header|Right Side
+-|-
+Blubb|Bla
