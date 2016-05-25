@@ -26,3 +26,4 @@ CONSOLE BUMBLE
 Header|Right Side
 ------|----------
 Blubb |Bla
+Kanalonispaxxisa|kannapadosa
