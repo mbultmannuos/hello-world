@@ -16,3 +16,8 @@ CONSOLE BUMBLE
   1. List 2.1
       1. List2.1.1
 
+    function fancyAlert(arg) {
+      if(arg) {
+        $.facebox({div:'#foo'})
+      }
+    }
